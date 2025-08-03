@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -87,12 +87,12 @@
 <body>
 
     <div class="game-container">
-        <div id="score-display">Skor: 0</div>
+        <div id="score-display">Score: 0</div>
         <canvas id="gameCanvas" width="400" height="600"></canvas>
         <div id="game-overlay">
             <h1>Motor Racer</h1>
-            <h2 id="final-message">Hindari Rintangan, Kumpulkan Kode!</h2>
-            <button id="start-button">Mulai</button>
+            <h2 id="final-message">Avoid Obstacles, Collect Codes!</h2>
+            <button id="start-button">Start</button>
         </div>
     </div>
 
@@ -103,16 +103,16 @@
         const startButton = document.getElementById('start-button');
         const finalMessage = document.getElementById('final-message');
         const scoreDisplay = document.getElementById('score-display');
-        
+
         let isGameRunning = false;
         let score = 0;
 
-        // Player
+        // Player (will be represented by a purple rectangle)
         const player = {
             x: canvas.width / 2,
             y: canvas.height - 50,
-            width: 40,
-            height: 20,
+            width: 30,
+            height: 30,
             speed: 5
         };
 
@@ -131,7 +131,7 @@
         let leftPressed = false;
 
         function drawPlayer() {
-            ctx.fillStyle = '#E2E2F0';
+            ctx.fillStyle = '#8A2BE2'; // Placeholder color for the logo
             ctx.fillRect(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
         }
 
@@ -140,9 +140,8 @@
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
         }
 
-        // --- Fungsi untuk menggambar objek "CODE"
         function drawCollectible(collectible) {
-            ctx.fillStyle = '#E2E2F0'; // Warna teks
+            ctx.fillStyle = '#E2E2F0';
             ctx.font = '20px "Roboto Mono", monospace';
             ctx.fillText('CODE', collectible.x, collectible.y + 15);
         }
@@ -169,65 +168,58 @@
             collectibleCounter++;
             if (collectibleCounter >= collectibleSpawnRate) {
                 const x = Math.random() * (canvas.width - 40);
-                // Ukuran collectible disesuaikan dengan teks "CODE"
                 collectibles.push({ x: x, y: -40, width: 50, height: 20, speed: 2 });
                 collectibleCounter = 0;
             }
 
-            // Update obstacles
-            for (let i = 0; i < obstacles.length; i++) {
-                obstacles[i].y += obstacles[i].speed;
-
-                // Collision detection
-                if (player.x < obstacles[i].x + obstacles[i].width &&
-                    player.x + player.width > obstacles[i].x &&
-                    player.y < obstacles[i].y + obstacles[i].height &&
-                    player.y + player.height > obstacles[i].y) {
+            // Update objects
+            obstacles.forEach((obstacle, index) => {
+                obstacle.y += obstacle.speed;
+                if (
+                    player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + player.height > obstacle.y
+                ) {
                     endGame();
                 }
-
-                // Remove off-screen obstacles
-                if (obstacles[i].y > canvas.height) {
-                    obstacles.splice(i, 1);
-                    i--;
+                if (obstacle.y > canvas.height) {
+                    obstacles.splice(index, 1);
                 }
-            }
+            });
 
-            // Update collectibles
-            for (let i = 0; i < collectibles.length; i++) {
-                collectibles[i].y += collectibles[i].speed;
-
-                // Collision detection
-                if (player.x < collectibles[i].x + collectibles[i].width &&
-                    player.x + player.width > collectibles[i].x &&
-                    player.y < collectibles[i].y + collectibles[i].height &&
-                    player.y + player.height > collectibles[i].y) {
+            collectibles.forEach((collectible, index) => {
+                collectible.y += collectible.speed;
+                if (
+                    player.x < collectible.x + collectible.width &&
+                    player.x + player.width > collectible.x &&
+                    player.y < collectible.y + collectible.height &&
+                    player.y + player.height > collectible.y
+                ) {
                     score++;
-                    scoreDisplay.textContent = `Skor: ${score}`;
-                    collectibles.splice(i, 1);
-                    i--;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                    collectibles.splice(index, 1);
                 }
-                 // Remove off-screen collectibles
-                if (collectibles[i].y > canvas.height) {
-                    collectibles.splice(i, 1);
-                    i--;
+                if (collectible.y > canvas.height) {
+                    collectibles.splice(index, 1);
                 }
-            }
-            
+            });
+
             // Clear canvas and redraw
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawPlayer();
             obstacles.forEach(drawObstacle);
             collectibles.forEach(drawCollectible);
-            
+
             requestAnimationFrame(update);
         }
 
         function startGame() {
             isGameRunning = true;
             score = 0;
-            scoreDisplay.textContent = `Skor: ${score}`;
+            scoreDisplay.textContent = `Score: ${score}`;
             player.x = canvas.width / 2;
+            player.y = canvas.height - 50;
             obstacles.length = 0;
             collectibles.length = 0;
             overlay.classList.add('hidden');
@@ -236,8 +228,8 @@
 
         function endGame() {
             isGameRunning = false;
-            finalMessage.innerHTML = `Game Over!<br>Skor Akhir: ${score}`;
-            startButton.textContent = 'Mulai Lagi';
+            finalMessage.innerHTML = `Game Over!<br>Final Score: ${score}`;
+            startButton.textContent = 'Play Again';
             overlay.classList.remove('hidden');
         }
 
@@ -269,7 +261,7 @@
             }
         });
 
-        canvas.addEventListener('touchend', (e) => {
+        canvas.addEventListener('touchend', () => {
             rightPressed = false;
             leftPressed = false;
         });
