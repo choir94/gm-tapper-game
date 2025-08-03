@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GM! Protocol Tapper</title>
+    <title>Ethereum OS Puzzle</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
 
@@ -17,98 +17,50 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            flex-direction: column;
         }
 
-        .game-container {
-            width: 90%;
-            max-width: 600px;
-            background-color: #1F2847;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 200, 255, 0.25);
-            padding: 20px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid #503C5C;
-        }
-
-        .protocol-title {
-            font-size: 2.5em;
+        h1 {
             color: #8A2BE2;
             text-shadow: 0 0 10px #8A2BE2;
-        }
-
-        .stats {
-            display: flex;
-            justify-content: space-between;
+            font-size: 2em;
             margin-bottom: 20px;
-            font-size: 1.2em;
         }
 
-        .game-area {
-            width: 100%;
-            height: 400px;
+        #puzzle-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
             border: 2px solid #503C5C;
+            padding: 5px;
             background-color: #121A31;
             position: relative;
-            overflow: hidden;
         }
 
-        .falling-object {
-            position: absolute;
-            top: -50px;
-            width: 60px;
-            height: 60px;
-            font-size: 1.5em;
+        .tile {
+            width: 100px;
+            height: 100px;
+            background-size: 300px 300px;
             cursor: pointer;
-            user-select: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            animation: fall linear forwards;
-            color: white;
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+            box-shadow: 0 0 5px rgba(138, 43, 226, 0.2);
+        }
+
+        .tile.empty {
+            background: none;
+            cursor: default;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 1.2em;
             font-weight: bold;
         }
 
-        .gm {
-            background-color: #6A387E;
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-            box-shadow: 0 0 8px #935FE2;
-        }
-
-        .bomb {
-            background-color: #CC2255;
-            border-radius: 50%;
-            box-shadow: 0 0 12px #FF0044;
-            animation: fall linear forwards, glow 1s infinite alternate;
-        }
-
-        @keyframes glow {
-            from { box-shadow: 0 0 12px #FF0044; }
-            to { box-shadow: 0 0 20px #FF0044; }
-        }
-
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-            transition: opacity 0.3s ease;
-        }
-
-        .overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
         #start-button {
+            margin-top: 20px;
             background-color: #503C5C;
             color: #E2E2F0;
             border: 1px solid #8A2BE2;
@@ -116,7 +68,6 @@
             font-size: 1.2em;
             cursor: pointer;
             border-radius: 5px;
-            margin-top: 20px;
             text-transform: uppercase;
             font-weight: bold;
             transition: all 0.2s ease;
@@ -127,115 +78,140 @@
             color: #0A0A16;
         }
 
-        @keyframes fall {
-            from { transform: translateY(0); }
-            to { transform: translateY(450px); }
+        @media (max-width: 400px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            #puzzle-container {
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+                gap: 3px;
+                width: 250px;
+                height: 250px;
+            }
+            .tile {
+                width: 80px;
+                height: 80px;
+                background-size: 240px 240px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="game-container">
-        <h1 class="protocol-title">GM! Protocol Tapper</h1>
-        <div class="stats">
-            <span id="score-display">SKOR: 0</span>
-            <span id="timer-display">WAKTU: 60</span>
-        </div>
-        
-        <div id="game-area" class="game-area"></div>
-        
-        <div class="overlay" id="overlay">
-            <h2 id="final-message">Klik Mulai untuk bermain!</h2>
-            <button id="start-button">Mulai</button>
-        </div>
-    </div>
+    <h1>Ethereum OS Puzzle</h1>
+    <div id="puzzle-container"></div>
+    <div id="message"></div>
+    <button id="start-button">Mulai Game</button>
 
     <script>
-        const gameArea = document.getElementById('game-area');
-        const scoreDisplay = document.getElementById('score-display');
-        const timerDisplay = document.getElementById('timer-display');
-        const overlay = document.getElementById('overlay');
+        const imageUrl = "https://raw.githubusercontent.com/choir94/gm-tapper-game/main/20250803_233022.jpg";
+        const puzzleContainer = document.getElementById('puzzle-container');
+        const messageDisplay = document.getElementById('message');
         const startButton = document.getElementById('start-button');
-        const finalMessage = document.getElementById('final-message');
-        
-        let score = 0;
-        let timeLeft = 60;
-        let isGameRunning = false;
-        let gameLoopInterval;
-        let timerInterval;
+        const board = [];
+        let emptyTileIndex = 8;
+        let isSolved = false;
 
-        function startGame() {
-            score = 0;
-            timeLeft = 60;
-            isGameRunning = true;
-            scoreDisplay.textContent = `SKOR: ${score}`;
-            timerDisplay.textContent = `WAKTU: ${timeLeft}`;
-            overlay.classList.add('hidden');
+        const TILE_COUNT = 9;
+        const GRID_SIZE = 3;
 
-            gameArea.innerHTML = '';
+        function createTiles() {
+            puzzleContainer.innerHTML = '';
+            for (let i = 0; i < TILE_COUNT; i++) {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                tile.dataset.index = i;
 
-            gameLoopInterval = setInterval(createFallingObject, 800);
-            timerInterval = setInterval(updateTimer, 1000);
-        }
-
-        function endGame() {
-            isGameRunning = false;
-            clearInterval(gameLoopInterval);
-            clearInterval(timerInterval);
-            
-            finalMessage.textContent = `Waktu habis! SKOR Anda: ${score}`;
-            overlay.classList.remove('hidden');
-        }
-
-        function updateTimer() {
-            timeLeft--;
-            timerDisplay.textContent = `WAKTU: ${timeLeft}`;
-
-            if (timeLeft <= 0) {
-                endGame();
-            }
-        }
-
-        function createFallingObject() {
-            if (!isGameRunning) return;
-
-            const object = document.createElement('div');
-            object.classList.add('falling-object');
-
-            const isGM = Math.random() > 0.3;
-            if (isGM) {
-                object.classList.add('gm');
-                object.textContent = 'GM!';
-            } else {
-                object.classList.add('bomb');
-                object.textContent = 'ERROR';
-            }
-
-            object.style.left = Math.random() * (gameArea.offsetWidth - 60) + 'px';
-
-            object.addEventListener('click', () => {
-                if (!isGameRunning) return;
-
-                if (isGM) {
-                    score++;
-                    scoreDisplay.textContent = `SKOR: ${score}`;
+                if (i < TILE_COUNT - 1) {
+                    const row = Math.floor(i / GRID_SIZE);
+                    const col = i % GRID_SIZE;
+                    tile.style.backgroundImage = `url(${imageUrl})`;
+                    tile.style.backgroundPosition = `-${col * 100}px -${row * 100}px`;
                 } else {
-                    score = Math.max(0, score - 5);
-                    scoreDisplay.textContent = `SKOR: ${score}`;
+                    tile.classList.add('empty');
                 }
-                object.remove();
-            });
+                
+                tile.addEventListener('click', handleTileClick);
+                board.push(tile);
+            }
+        }
 
-            gameArea.appendChild(object);
+        function shuffleTiles() {
+            for (let i = 0; i < 1000; i++) {
+                const randomNeighbor = getRandomNeighbor(emptyTileIndex);
+                swapTiles(emptyTileIndex, randomNeighbor);
+            }
+            emptyTileIndex = board.findIndex(tile => tile.classList.contains('empty'));
+        }
 
-            setTimeout(() => {
-                if (object.parentElement) {
-                    object.remove();
-                }
-            }, 4000);
+        function getRandomNeighbor(index) {
+            const neighbors = getNeighbors(index);
+            return neighbors[Math.floor(Math.random() * neighbors.length)];
+        }
+
+        function getNeighbors(index) {
+            const row = Math.floor(index / GRID_SIZE);
+            const col = index % GRID_SIZE;
+            const neighbors = [];
+
+            if (row > 0) neighbors.push(index - GRID_SIZE);
+            if (row < GRID_SIZE - 1) neighbors.push(index + GRID_SIZE);
+            if (col > 0) neighbors.push(index - 1);
+            if (col < GRID_SIZE - 1) neighbors.push(index + 1);
+
+            return neighbors;
+        }
+
+        function swapTiles(index1, index2) {
+            const tile1 = board[index1];
+            const tile2 = board[index2];
+
+            [tile1.style.transform, tile2.style.transform] = [tile2.style.transform, tile1.style.transform];
+            [tile1.dataset.index, tile2.dataset.index] = [tile2.dataset.index, tile1.dataset.index];
+            [board[index1], board[index2]] = [board[index2], board[index1]];
+        }
+
+        function handleTileClick(event) {
+            if (isSolved) return;
+
+            const clickedTile = event.target;
+            const clickedIndex = parseInt(clickedTile.dataset.index);
+
+            const neighbors = getNeighbors(emptyTileIndex);
+            if (neighbors.includes(clickedIndex)) {
+                swapTiles(emptyTileIndex, clickedIndex);
+                emptyTileIndex = clickedIndex;
+                checkWin();
+            }
+        }
+
+        function checkWin() {
+            const currentOrder = board.map(tile => parseInt(tile.dataset.index));
+            const isCorrect = currentOrder.every((value, index) => value === index);
+            if (isCorrect) {
+                isSolved = true;
+                messageDisplay.textContent = "Selamat! Puzzle berhasil diselesaikan!";
+                startButton.textContent = "Main Lagi";
+            }
+        }
+        
+        function startGame() {
+            isSolved = false;
+            messageDisplay.textContent = "";
+            board.length = 0;
+            createTiles();
+            shuffleTiles();
+            renderBoard();
+        }
+
+        function renderBoard() {
+            board.forEach(tile => puzzleContainer.appendChild(tile));
         }
 
         startButton.addEventListener('click', startGame);
+
+        startGame();
     </script>
 </body>
 </html>
