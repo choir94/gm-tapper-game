@@ -106,22 +106,23 @@
 
         let isGameRunning = false;
         let score = 0;
+        let gameSpeed = 1; // Base game speed multiplier
 
-        // Player (will be represented by a purple rectangle)
+        // Player
         const player = {
             x: canvas.width / 2,
             y: canvas.height - 50,
-            width: 30,
-            height: 30,
+            width: 30, // for collision
+            height: 40, // for collision
             speed: 5
         };
 
         // Obstacles (ERROR)
         const obstacles = [];
-        const obstacleSpawnRate = 120; // Spawn every 120 frames
+        const obstacleSpawnRate = 120;
         let obstacleCounter = 0;
 
-        // Collectibles (CODE)
+        // Collectibles (CODE and ETH_OS)
         const collectibles = [];
         const collectibleSpawnRate = 180;
         let collectibleCounter = 0;
@@ -129,10 +130,24 @@
         // Input
         let rightPressed = false;
         let leftPressed = false;
-
+        
+        // --- Fungsi yang diperbarui untuk menggambar mobil
         function drawPlayer() {
-            ctx.fillStyle = '#8A2BE2'; // Placeholder color for the logo
-            ctx.fillRect(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
+            ctx.beginPath();
+            ctx.fillStyle = '#8A2BE2';
+            
+            // Body mobil
+            ctx.fillRect(player.x - 15, player.y - 10, 30, 20);
+            
+            // Atap mobil
+            ctx.fillRect(player.x - 10, player.y - 20, 20, 10);
+            
+            // Roda mobil
+            ctx.fillStyle = '#E2E2F0';
+            ctx.fillRect(player.x - 18, player.y + 5, 8, 5); // Roda kiri
+            ctx.fillRect(player.x + 10, player.y + 5, 8, 5); // Roda kanan
+            
+            ctx.closePath();
         }
 
         function drawObstacle(obstacle) {
@@ -143,7 +158,7 @@
         function drawCollectible(collectible) {
             ctx.fillStyle = '#E2E2F0';
             ctx.font = '20px "Roboto Mono", monospace';
-            ctx.fillText('CODE', collectible.x, collectible.y + 15);
+            ctx.fillText(collectible.type, collectible.x, collectible.y + 15);
         }
 
         function update() {
@@ -158,17 +173,18 @@
 
             // Spawn obstacles
             obstacleCounter++;
-            if (obstacleCounter >= obstacleSpawnRate) {
+            if (obstacleCounter >= obstacleSpawnRate / gameSpeed) {
                 const x = Math.random() * (canvas.width - 50);
-                obstacles.push({ x: x, y: -50, width: 50, height: 20, speed: 2 });
+                obstacles.push({ x: x, y: -50, width: 50, height: 20, speed: 2 * gameSpeed });
                 obstacleCounter = 0;
             }
 
             // Spawn collectibles
             collectibleCounter++;
-            if (collectibleCounter >= collectibleSpawnRate) {
+            if (collectibleCounter >= collectibleSpawnRate / gameSpeed) {
                 const x = Math.random() * (canvas.width - 40);
-                collectibles.push({ x: x, y: -40, width: 50, height: 20, speed: 2 });
+                const type = Math.random() > 0.5 ? 'CODE' : 'ETH_OS';
+                collectibles.push({ x: x, y: -40, width: 50, height: 20, speed: 2 * gameSpeed, type: type });
                 collectibleCounter = 0;
             }
 
@@ -176,10 +192,10 @@
             obstacles.forEach((obstacle, index) => {
                 obstacle.y += obstacle.speed;
                 if (
-                    player.x < obstacle.x + obstacle.width &&
-                    player.x + player.width > obstacle.x &&
-                    player.y < obstacle.y + obstacle.height &&
-                    player.y + player.height > obstacle.y
+                    player.x - player.width/2 < obstacle.x + obstacle.width &&
+                    player.x + player.width/2 > obstacle.x &&
+                    player.y - player.height/2 < obstacle.y + obstacle.height &&
+                    player.y + player.height/2 > obstacle.y
                 ) {
                     endGame();
                 }
@@ -191,13 +207,14 @@
             collectibles.forEach((collectible, index) => {
                 collectible.y += collectible.speed;
                 if (
-                    player.x < collectible.x + collectible.width &&
-                    player.x + player.width > collectible.x &&
-                    player.y < collectible.y + collectible.height &&
-                    player.y + player.height > collectible.y
+                    player.x - player.width/2 < collectible.x + collectible.width &&
+                    player.x + player.width/2 > collectible.x &&
+                    player.y - player.height/2 < collectible.y + collectible.height &&
+                    player.y + player.height/2 > collectible.y
                 ) {
                     score++;
                     scoreDisplay.textContent = `Score: ${score}`;
+                    gameSpeed += 0.05;
                     collectibles.splice(index, 1);
                 }
                 if (collectible.y > canvas.height) {
@@ -217,6 +234,7 @@
         function startGame() {
             isGameRunning = true;
             score = 0;
+            gameSpeed = 1;
             scoreDisplay.textContent = `Score: ${score}`;
             player.x = canvas.width / 2;
             player.y = canvas.height - 50;
