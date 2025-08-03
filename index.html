@@ -112,8 +112,8 @@
         const player = {
             x: canvas.width / 2,
             y: canvas.height - 50,
-            width: 30, // for collision
-            height: 40, // for collision
+            width: 30,
+            height: 30,
             speed: 5
         };
 
@@ -122,32 +122,38 @@
         const obstacleSpawnRate = 120;
         let obstacleCounter = 0;
 
-        // Collectibles (CODE and ETH_OS)
+        // Collectibles (CODE, ETH_OS, GM)
         const collectibles = [];
         const collectibleSpawnRate = 180;
         let collectibleCounter = 0;
+        const collectibleTypes = ['CODE', '@Ethereum_OS', 'GM'];
 
         // Input
         let rightPressed = false;
         let leftPressed = false;
-        
-        // --- Fungsi yang diperbarui untuk menggambar mobil
+
         function drawPlayer() {
             ctx.beginPath();
+            
+            const size = player.width;
+            const x = player.x;
+            const y = player.y;
+
             ctx.fillStyle = '#8A2BE2';
-            
-            // Body mobil
-            ctx.fillRect(player.x - 15, player.y - 10, 30, 20);
-            
-            // Atap mobil
-            ctx.fillRect(player.x - 10, player.y - 20, 20, 10);
-            
-            // Roda mobil
-            ctx.fillStyle = '#E2E2F0';
-            ctx.fillRect(player.x - 18, player.y + 5, 8, 5); // Roda kiri
-            ctx.fillRect(player.x + 10, player.y + 5, 8, 5); // Roda kanan
-            
+            ctx.moveTo(x, y - size / 2);
+            ctx.lineTo(x + size / 2, y);
+            ctx.lineTo(x, y + size / 2);
+            ctx.lineTo(x - size / 2, y);
             ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.moveTo(x, y - size / 2);
+            ctx.lineTo(x + size / 2, y);
+            ctx.lineTo(x, y + size / 2);
+            ctx.lineTo(x, y);
+            ctx.closePath();
+            ctx.fill();
         }
 
         function drawObstacle(obstacle) {
@@ -157,21 +163,21 @@
 
         function drawCollectible(collectible) {
             ctx.fillStyle = '#E2E2F0';
-            ctx.font = '20px "Roboto Mono", monospace';
-            ctx.fillText(collectible.type, collectible.x, collectible.y + 15);
+            ctx.font = '16px "Roboto Mono", monospace';
+            
+            const textWidth = ctx.measureText(collectible.type).width;
+            ctx.fillText(collectible.type, collectible.x + (collectible.width - textWidth) / 2, collectible.y + 15);
         }
 
         function update() {
             if (!isGameRunning) return;
 
-            // Update player position
             if (rightPressed && player.x < canvas.width - player.width / 2) {
                 player.x += player.speed;
             } else if (leftPressed && player.x > player.width / 2) {
                 player.x -= player.speed;
             }
 
-            // Spawn obstacles
             obstacleCounter++;
             if (obstacleCounter >= obstacleSpawnRate / gameSpeed) {
                 const x = Math.random() * (canvas.width - 50);
@@ -179,16 +185,14 @@
                 obstacleCounter = 0;
             }
 
-            // Spawn collectibles
             collectibleCounter++;
             if (collectibleCounter >= collectibleSpawnRate / gameSpeed) {
                 const x = Math.random() * (canvas.width - 40);
-                const type = Math.random() > 0.5 ? 'CODE' : 'ETH_OS';
-                collectibles.push({ x: x, y: -40, width: 50, height: 20, speed: 2 * gameSpeed, type: type });
+                const randomType = collectibleTypes[Math.floor(Math.random() * collectibleTypes.length)];
+                collectibles.push({ x: x, y: -40, width: 50, height: 20, speed: 2 * gameSpeed, type: randomType });
                 collectibleCounter = 0;
             }
 
-            // Update objects
             obstacles.forEach((obstacle, index) => {
                 obstacle.y += obstacle.speed;
                 if (
@@ -222,7 +226,6 @@
                 }
             });
 
-            // Clear canvas and redraw
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawPlayer();
             obstacles.forEach(drawObstacle);
@@ -251,7 +254,6 @@
             overlay.classList.remove('hidden');
         }
 
-        // Event listeners for keyboard
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight' || e.key === 'Right') {
                 rightPressed = true;
@@ -268,7 +270,6 @@
             }
         });
 
-        // Event listeners for touch (mobile)
         canvas.addEventListener('touchstart', (e) => {
             const touchX = e.touches[0].clientX;
             const canvasRect = canvas.getBoundingClientRect();
