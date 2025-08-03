@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ethereum OS Puzzle</title>
+    <title>Motor Racer</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
 
@@ -16,51 +16,41 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
-            flex-direction: column;
         }
 
-        h1 {
-            color: #8A2BE2;
-            text-shadow: 0 0 10px #8A2BE2;
-            font-size: 2em;
-            margin-bottom: 20px;
-        }
-
-        #puzzle-container {
-            display: grid;
-            grid-template-columns: repeat(3, 100px);
-            grid-template-rows: repeat(3, 100px);
-            gap: 5px;
-            border: 2px solid #503C5C;
-            padding: 5px;
-            background-color: #121A31;
+        .game-container {
+            text-align: center;
             position: relative;
         }
 
-        .tile {
-            width: 100px;
-            height: 100px;
-            background-size: 300px 300px;
-            cursor: pointer;
-            border: 1px solid rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s ease;
-            box-shadow: 0 0 5px rgba(138, 43, 226, 0.2);
+        #gameCanvas {
+            background-color: #121A31;
+            border: 2px solid #503C5C;
+            box-shadow: 0 0 20px rgba(0, 200, 255, 0.25);
         }
 
-        .tile.empty {
-            background: none;
-            cursor: default;
+        #game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease;
         }
 
-        #message {
-            margin-top: 20px;
-            font-size: 1.2em;
-            font-weight: bold;
+        #game-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
         }
 
-        #start-button {
-            margin-top: 20px;
+        #start-button, #restart-button {
             background-color: #503C5C;
             color: #E2E2F0;
             border: 1px solid #8A2BE2;
@@ -71,147 +61,221 @@
             text-transform: uppercase;
             font-weight: bold;
             transition: all 0.2s ease;
+            margin-top: 20px;
         }
 
-        #start-button:hover {
+        #start-button:hover, #restart-button:hover {
             background-color: #8A2BE2;
             color: #0A0A16;
         }
 
-        @media (max-width: 400px) {
-            h1 {
-                font-size: 1.5em;
-            }
-            #puzzle-container {
-                grid-template-columns: repeat(3, 80px);
-                grid-template-rows: repeat(3, 80px);
-                gap: 3px;
-                width: 250px;
-                height: 250px;
-            }
-            .tile {
-                width: 80px;
-                height: 80px;
-                background-size: 240px 240px;
-            }
+        h1 {
+            color: #8A2BE2;
+            text-shadow: 0 0 10px #8A2BE2;
+            font-size: 2.5em;
+        }
+
+        #score-display {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 1.5em;
+            color: #8A2BE2;
         }
     </style>
 </head>
 <body>
 
-    <h1>Ethereum OS Puzzle</h1>
-    <div id="puzzle-container"></div>
-    <div id="message"></div>
-    <button id="start-button">Mulai Game</button>
+    <div class="game-container">
+        <div id="score-display">Skor: 0</div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div id="game-overlay">
+            <h1>Motor Racer</h1>
+            <h2 id="final-message">Hindari Rintangan, Kumpulkan Kode!</h2>
+            <button id="start-button">Mulai</button>
+        </div>
+    </div>
 
     <script>
-        const imageUrl = "https://raw.githubusercontent.com/choir94/gm-tapper-game/main/20250803_233022.jpg";
-        const puzzleContainer = document.getElementById('puzzle-container');
-        const messageDisplay = document.getElementById('message');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('game-overlay');
         const startButton = document.getElementById('start-button');
-        const board = [];
-        let emptyTileIndex = 8;
-        let isSolved = false;
-
-        const TILE_COUNT = 9;
-        const GRID_SIZE = 3;
-
-        function createTiles() {
-            puzzleContainer.innerHTML = '';
-            for (let i = 0; i < TILE_COUNT; i++) {
-                const tile = document.createElement('div');
-                tile.classList.add('tile');
-                tile.dataset.index = i;
-
-                if (i < TILE_COUNT - 1) {
-                    const row = Math.floor(i / GRID_SIZE);
-                    const col = i % GRID_SIZE;
-                    tile.style.backgroundImage = `url(${imageUrl})`;
-                    tile.style.backgroundPosition = `-${col * 100}px -${row * 100}px`;
-                } else {
-                    tile.classList.add('empty');
-                }
-                
-                tile.addEventListener('click', handleTileClick);
-                board.push(tile);
-            }
-        }
-
-        function shuffleTiles() {
-            for (let i = 0; i < 1000; i++) {
-                const randomNeighbor = getRandomNeighbor(emptyTileIndex);
-                swapTiles(emptyTileIndex, randomNeighbor);
-            }
-            emptyTileIndex = board.findIndex(tile => tile.classList.contains('empty'));
-        }
-
-        function getRandomNeighbor(index) {
-            const neighbors = getNeighbors(index);
-            return neighbors[Math.floor(Math.random() * neighbors.length)];
-        }
-
-        function getNeighbors(index) {
-            const row = Math.floor(index / GRID_SIZE);
-            const col = index % GRID_SIZE;
-            const neighbors = [];
-
-            if (row > 0) neighbors.push(index - GRID_SIZE);
-            if (row < GRID_SIZE - 1) neighbors.push(index + GRID_SIZE);
-            if (col > 0) neighbors.push(index - 1);
-            if (col < GRID_SIZE - 1) neighbors.push(index + 1);
-
-            return neighbors;
-        }
-
-        function swapTiles(index1, index2) {
-            const tile1 = board[index1];
-            const tile2 = board[index2];
-
-            [tile1.style.transform, tile2.style.transform] = [tile2.style.transform, tile1.style.transform];
-            [tile1.dataset.index, tile2.dataset.index] = [tile2.dataset.index, tile1.dataset.index];
-            [board[index1], board[index2]] = [board[index2], board[index1]];
-        }
-
-        function handleTileClick(event) {
-            if (isSolved) return;
-
-            const clickedTile = event.target;
-            const clickedIndex = parseInt(clickedTile.dataset.index);
-
-            const neighbors = getNeighbors(emptyTileIndex);
-            if (neighbors.includes(clickedIndex)) {
-                swapTiles(emptyTileIndex, clickedIndex);
-                emptyTileIndex = clickedIndex;
-                checkWin();
-            }
-        }
-
-        function checkWin() {
-            const currentOrder = board.map(tile => parseInt(tile.dataset.index));
-            const isCorrect = currentOrder.every((value, index) => value === index);
-            if (isCorrect) {
-                isSolved = true;
-                messageDisplay.textContent = "Selamat! Puzzle berhasil diselesaikan!";
-                startButton.textContent = "Main Lagi";
-            }
-        }
+        const finalMessage = document.getElementById('final-message');
+        const scoreDisplay = document.getElementById('score-display');
         
-        function startGame() {
-            isSolved = false;
-            messageDisplay.textContent = "";
-            board.length = 0;
-            createTiles();
-            shuffleTiles();
-            renderBoard();
+        let isGameRunning = false;
+        let score = 0;
+
+        // Player
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            width: 40,
+            height: 20,
+            speed: 5
+        };
+
+        // Obstacles (ERROR)
+        const obstacles = [];
+        const obstacleSpawnRate = 120; // Spawn every 120 frames
+        let obstacleCounter = 0;
+
+        // Collectibles (CODE)
+        const collectibles = [];
+        const collectibleSpawnRate = 180;
+        let collectibleCounter = 0;
+
+        // Input
+        let rightPressed = false;
+        let leftPressed = false;
+
+        function drawPlayer() {
+            ctx.fillStyle = '#E2E2F0';
+            ctx.fillRect(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
         }
 
-        function renderBoard() {
-            board.forEach(tile => puzzleContainer.appendChild(tile));
+        function drawObstacle(obstacle) {
+            ctx.fillStyle = '#CC2255';
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
         }
+
+        // --- Fungsi untuk menggambar objek "CODE"
+        function drawCollectible(collectible) {
+            ctx.fillStyle = '#E2E2F0'; // Warna teks
+            ctx.font = '20px "Roboto Mono", monospace';
+            ctx.fillText('CODE', collectible.x, collectible.y + 15);
+        }
+
+        function update() {
+            if (!isGameRunning) return;
+
+            // Update player position
+            if (rightPressed && player.x < canvas.width - player.width / 2) {
+                player.x += player.speed;
+            } else if (leftPressed && player.x > player.width / 2) {
+                player.x -= player.speed;
+            }
+
+            // Spawn obstacles
+            obstacleCounter++;
+            if (obstacleCounter >= obstacleSpawnRate) {
+                const x = Math.random() * (canvas.width - 50);
+                obstacles.push({ x: x, y: -50, width: 50, height: 20, speed: 2 });
+                obstacleCounter = 0;
+            }
+
+            // Spawn collectibles
+            collectibleCounter++;
+            if (collectibleCounter >= collectibleSpawnRate) {
+                const x = Math.random() * (canvas.width - 40);
+                // Ukuran collectible disesuaikan dengan teks "CODE"
+                collectibles.push({ x: x, y: -40, width: 50, height: 20, speed: 2 });
+                collectibleCounter = 0;
+            }
+
+            // Update obstacles
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].y += obstacles[i].speed;
+
+                // Collision detection
+                if (player.x < obstacles[i].x + obstacles[i].width &&
+                    player.x + player.width > obstacles[i].x &&
+                    player.y < obstacles[i].y + obstacles[i].height &&
+                    player.y + player.height > obstacles[i].y) {
+                    endGame();
+                }
+
+                // Remove off-screen obstacles
+                if (obstacles[i].y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    i--;
+                }
+            }
+
+            // Update collectibles
+            for (let i = 0; i < collectibles.length; i++) {
+                collectibles[i].y += collectibles[i].speed;
+
+                // Collision detection
+                if (player.x < collectibles[i].x + collectibles[i].width &&
+                    player.x + player.width > collectibles[i].x &&
+                    player.y < collectibles[i].y + collectibles[i].height &&
+                    player.y + player.height > collectibles[i].y) {
+                    score++;
+                    scoreDisplay.textContent = `Skor: ${score}`;
+                    collectibles.splice(i, 1);
+                    i--;
+                }
+                 // Remove off-screen collectibles
+                if (collectibles[i].y > canvas.height) {
+                    collectibles.splice(i, 1);
+                    i--;
+                }
+            }
+            
+            // Clear canvas and redraw
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer();
+            obstacles.forEach(drawObstacle);
+            collectibles.forEach(drawCollectible);
+            
+            requestAnimationFrame(update);
+        }
+
+        function startGame() {
+            isGameRunning = true;
+            score = 0;
+            scoreDisplay.textContent = `Skor: ${score}`;
+            player.x = canvas.width / 2;
+            obstacles.length = 0;
+            collectibles.length = 0;
+            overlay.classList.add('hidden');
+            update();
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            finalMessage.innerHTML = `Game Over!<br>Skor Akhir: ${score}`;
+            startButton.textContent = 'Mulai Lagi';
+            overlay.classList.remove('hidden');
+        }
+
+        // Event listeners for keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Right') {
+                rightPressed = true;
+            } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
+                leftPressed = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Right') {
+                rightPressed = false;
+            } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
+                leftPressed = false;
+            }
+        });
+
+        // Event listeners for touch (mobile)
+        canvas.addEventListener('touchstart', (e) => {
+            const touchX = e.touches[0].clientX;
+            const canvasRect = canvas.getBoundingClientRect();
+            if (touchX > canvasRect.left + canvasRect.width / 2) {
+                rightPressed = true;
+            } else {
+                leftPressed = true;
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            rightPressed = false;
+            leftPressed = false;
+        });
 
         startButton.addEventListener('click', startGame);
 
-        startGame();
     </script>
 </body>
 </html>
